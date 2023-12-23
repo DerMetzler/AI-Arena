@@ -207,9 +207,11 @@ while True:
 
     # Update the display
     pygame.display.flip()
-
-    if(numAlive == 1 or pygame.key.get_pressed()[pygame.K_s]):
-        balls[0].save()
+    
+    if not (cst.MODE == 3):
+        if(numAlive == 1 or pygame.key.get_pressed()[pygame.K_s]):
+            for ball in balls:
+                ball.save()
 
 
 

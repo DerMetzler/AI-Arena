@@ -56,7 +56,7 @@ RESTART_TIME = 1000
 #MS_REMEMBERED =1000
 #FRAMES_REMEMBERED = MS_REMEMBERED / FRAME_TIME
 
-print("Modes: \n(1) FFA with real-time selection \n(2): 1v1 copilot training \n(3): FFA with Score based selection \n(4): 4v4 Teamfight")
+print("Modes: \n(1): FFA with real-time selection \n(2): 1v1 copilot training \n(3): FFA with score based selection \n(4): 4v4 teamfight")
 print("Mode selection: ")
 MODE = int(input())-1
 
@@ -69,7 +69,11 @@ SHRINKING_R = 0.01
 
 TRUE_DEATH = True
 
+if(MODE == 0):
+    print("\n\nFFA with real-time selection. Controls: \n* Left click on a ball to delete it \n* Right click on a ball to let it replicate \n*Press 's' to save all currently living balls.")
+
 if (MODE == 1):
+    print("\n\n1v1 copilot training. Controls: \n* Copilot mode is active while the space bar is pressed \nIn copilot mode, you do not control the ball, but the bot learns from you. \n* In copilot mode, use the arrow keys to indicate recommended movement. \n* Press 's' to save all currently living balls.")
     START_BALLS = 2
     ARENA_START_RADIUS = 200
     SHRINKING_R = 0.1
@@ -83,6 +87,8 @@ if (MODE == 1):
 #    'score_collide':0,
 #    'score_win':0}
 if (MODE == 2):
+    print("\n\nFFA with score based selection. Controls: \n* Edit \"scores.txt\" _beforehand_ to adjust how score is gained. \n* Press 's' to save all currently living balls.")
+    
     with open("scores.txt", 'r') as f:
         #json.dump(SCORE_DICT, f) 
         SCORE_DICT = json.load(f)
@@ -105,6 +111,7 @@ if (MODE == 2):
 
 
 if (MODE == 3):
+    print("\n\n4v4 teamfight. Controls: \n* None.")
     TEAMS = 2
     TEAMSCORE = [0,0]
     START_BALLS = 8
@@ -119,7 +126,7 @@ with open("bots.txt") as f:
 CONTESTANTS = []
 chosen_indices = []
 while len(CONTESTANTS) < START_BALLS:
-    print("No. Contestants: " + str(START_BALLS)+". Choose from your list: ")
+    print("\n\nNo. Contestants: " + str(START_BALLS)+". Choose from your list: ")
     for i in range(0,len(ALL_CONTESTANTS)):
         if i not in chosen_indices:
             print(str(i) + ": " + ALL_CONTESTANTS[i][0])

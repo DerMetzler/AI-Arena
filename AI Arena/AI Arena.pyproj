@@ -25,6 +25,7 @@
     <Compile Include="constants.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Modul1.py" />
     <Compile Include="NNBall.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
