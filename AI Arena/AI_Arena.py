@@ -1,3 +1,4 @@
+import enum
 import pygame
 import sys
 import math
@@ -25,6 +26,31 @@ def spawn_balls():
         balls.append(NNBall.NeuralBall(color = color, name = name, team =team))
     return balls
 
+def render(balls):
+    screen.fill(cst.BLACK)
+    pygame.draw.circle(screen, cst.ARENA_COLOR, (cst.CENTER_X, cst.CENTER_Y), cst.ARENA_RADIUS)
+    for ball in balls:
+        ball.draw(screen)
+    # Update the display
+    if (cst.MODE == 3 or cst.MODE == 1):
+        font = pygame.font.SysFont(None, 24)
+        for (i,ball) in enumerate(balls):
+            name = ball.name
+            if name == None:
+                name = 'Unnamed Bot'
+            nameimg = font.render(name, True, cst.WHITE)
+            numBallsPerTeam = cst.START_BALLS/2
+            if i < numBallsPerTeam:
+                pos = (2*cst.BALL_RADIUS, (i+1)*2.5*cst.BALL_RADIUS)
+                posname = (4*cst.BALL_RADIUS, (i+1)*2.5*cst.BALL_RADIUS)
+            else:
+                pos = (cst.SCREEN_WIDTH - 2*cst.BALL_RADIUS, (i+1-numBallsPerTeam)*2.5*cst.BALL_RADIUS)
+                posname = (cst.SCREEN_WIDTH - 7*cst.BALL_RADIUS,(i+1-numBallsPerTeam)*2.5*cst.BALL_RADIUS)
+            screen.blit(nameimg, posname)
+            pygame.draw.circle(screen, ball.color, pos, cst.BALL_RADIUS)
+    pygame.display.flip()
+
+
 # Initialize Pygame
 pygame.init()
 
@@ -43,16 +69,29 @@ pygame.display.set_caption("AI Ball Game")
 #    target_list = []
 
 
+
+render(balls)
+pygame.time.delay(cst.RESTART_TIME)
+
+if (cst.MODE == 3):
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        if pygame.key.get_pressed()[pygame.K_SPACE]:
+            break
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+    pressed = pygame.key.get_pressed()
     
-    screen.fill(cst.BLACK)
     
     cst.ARENA_RADIUS -= cst.SHRINKING_R
-    pygame.draw.circle(screen, cst.ARENA_COLOR, (cst.CENTER_X, cst.CENTER_Y), cst.ARENA_RADIUS)
+    
 
     if (cst.MODE == 0):
         if (pygame.mouse.get_pressed()[0]):
@@ -84,8 +123,6 @@ while True:
                 if (cst.MODE == 2 and ball.last_rammed_with != None):
                     ball.last_rammed_with.score += cst.SCORE_KILL
                 ball.die()
-
-            ball.draw(screen)
         elif cst.TRUE_DEATH:
             balls.remove(ball)
 
@@ -131,15 +168,13 @@ while True:
             #if (len(input_list) >= cst.FRAMES_REMEMBERED):
                 #input_list.pop()
                 #target_list.pop()
-            targets = np.array([0,0])
+            targets = np.array([0,0,0,0])
             if (pygame.key.get_pressed()[pygame.K_UP]):
-                #main.learn(input_list,target_list , unlearn = False)
-                targets[1] = -1  
+                targets[3] = 1  
             if (pygame.key.get_pressed()[pygame.K_DOWN]):
-                #main.learn(input_list,target_list, unlearn = True)
-                targets[1] = 1
+                targets[2] = 1
             if (pygame.key.get_pressed()[pygame.K_LEFT]):
-                targets[0] = -1  
+                targets[1] = 1  
             if (pygame.key.get_pressed()[pygame.K_RIGHT]):
                 targets[0] = 1
             inputs = main.prepare_inputs(balls)
@@ -147,9 +182,16 @@ while True:
 
         if numAlive <=1:
             cst.ARENA_RADIUS = cst.ARENA_START_RADIUS
-            pygame.time.delay(cst.RESTART_TIME)
+            pygame.time.delay(int(cst.RESTART_TIME/2))
+            cst.FLIP_SIDES *= -1
             for ball in balls:
                 ball.spawn()
+            render(balls)
+            pygame.time.delay(int(cst.RESTART_TIME/2))
+
+        if pygame.key.get_pressed()[pygame.K_f]:
+            balls.reverse()
+            pygame.time.delay(cst.RESTART_TIME)
 
     if (cst.MODE ==2):
         for ball in balls:
@@ -198,15 +240,14 @@ while True:
             print("Current score: " + str(cst.TEAMSCORE))
 
             cst.ARENA_RADIUS = cst.ARENA_START_RADIUS
-            pygame.time.delay(cst.RESTART_TIME)
+            cst.FLIP_SIDES *= -1
+            pygame.time.delay(int(cst.RESTART_TIME/2))
             for ball in balls:
                 ball.spawn()
+            render(balls)
+            pygame.time.delay(int(cst.RESTART_TIME/2))                       
 
-
-                            
-
-    # Update the display
-    pygame.display.flip()
+    render(balls)
     
     if not (cst.MODE == 3):
         if(numAlive == 1 or pygame.key.get_pressed()[pygame.K_s]):

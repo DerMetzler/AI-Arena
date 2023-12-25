@@ -20,8 +20,7 @@ ACCEL = 0.05
 CENTER_X = SCREEN_WIDTH/2
 CENTER_Y = SCREEN_HEIGHT/2
 
-FLIP_SIDES = (random.randint(0
-                             ,1)-0.5)*2
+FLIP_SIDES = (random.randint(0,1)-0.5)*2
 
 # Colors
 WHITE = [255, 255, 255]
