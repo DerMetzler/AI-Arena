@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 
-
+#LAYER_SIZE = [16,24,16,4]
 INPUT_SIZE = 8  # 4 inputs for each of the vector components (x, y) for center and closest ball, and 4 inputs for speed and relative speed
 HIDDEN_SIZE = 16 #first layer values in [-1,1], then in [0,1], last layer again in [-1,1]
 OUTPUT_SIZE = 2  # Output size for acceleration in the x and y directions
@@ -15,7 +15,7 @@ OUTPUT_SIZE = 2  # Output size for acceleration in the x and y directions
 
 
 def distance_sqrd(x1,y1,x2,y2):
-    return (x1-x2)**2 + (x2-y2)**2
+    return (x1-y1)**2 + (x2-y2)**2
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
