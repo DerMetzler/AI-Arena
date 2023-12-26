@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 
-LAYER_SIZE = (16,24,4)
+LAYER_SIZE = (8,16,2)
 LAYERS = len(LAYER_SIZE)
 #INPUT_SIZE = 8  # 4 inputs for each of the vector components (x, y) for center and closest ball, and 4 inputs for speed and relative speed
 #HIDDEN_SIZE = 16 #first layer values in [-1,1], then in [0,1], last layer again in [-1,1]
@@ -22,7 +22,7 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-def sigmoid_derivative(self, x):
+def sigmoid_derivative(x):
     return x * (1 - x)
 
 def rect(x):
@@ -60,23 +60,24 @@ class NeuralNetwork:
                 sizeout = LAYER_SIZE[i+1]
                 self.weights.append(np.random.rand(sizein, sizeout))
                 self.biases.append(np.random.rand(sizeout))
+            self.biases.pop()
         else:
-            for weights in parent.weights:
-                self.weights.append(wiggle_weights(weights,0,1))
-            for biases in parent.biases:  
+            for (i,weights) in enumerate(parent.weights):
+                if (i == 0 or i == LAYERS-2):
+                    self.weights.append(wiggle_weights(weights,-1,1))
+                else:
+                    self.weights.append(wiggle_weights(weights,0,1))
+            for biases in parent.biases:
                 self.biases.append(wiggle_weights(biases,0,1))
 
     def predict(self, inputs):
         # Forward pass through the network with biases
         activation = inputs
-        for i in range(0,LAYERS-1):
+        for i in range(0,LAYERS-2):
             activation = np.dot(activation, self.weights[i]) + self.biases[i]
             activation = rect(activation)
-            norm = np.linalg.norm(activation)
-            if (norm == 0):
-                return activation
-            else:
-                return activation / norm
+        output = np.dot(activation, self.weights[LAYERS-2]) #+ self.biases[LAYERS-2]
+        return np.clip(output,-1,1)
 
     def save(self,filename):
         filename = os.path.join("save",filename)
@@ -93,7 +94,7 @@ class NeuralNetwork:
         with open(filename, 'rb') as f:
             for i in range(0, LAYERS -1):
                 self.weights[i] = np.load(f)
-            for i in range(0, LAYERS-1):
+            for i in range(0, LAYERS-2):
                 self.biases[i] = np.load(f)
 
 
@@ -103,16 +104,18 @@ class NeuralNetwork:
         
         activation = []
         activation.append(inputs)
-        for i in range(0,LAYERS-1):
+        for i in range(0,LAYERS-2):
             activation.append(rect(np.dot(activation[i], self.weights[i]) + self.biases[i]))
-        output = activation[LAYERS-1]
+        output =  np.clip(np.dot(activation[LAYERS-2], self.weights[LAYERS-2]),-1,1) #+ self.biases[LAYERS-2]
+
 
         error = []
         delta = []
-        error.append(targets*np.linalg.norm(output) - output)
+        error.append(targets - output)
+        #print(error)
 
         # Backpropagation
-        delta.append(error[0] * rect_derivative(output))
+        delta.append(error[0])
 
         for i in range(0,LAYERS-1):
             error.append(delta[i].dot(self.weights[LAYERS-2-i].T))
@@ -121,7 +124,9 @@ class NeuralNetwork:
         # Update weights and biases
         for i in range(0, LAYERS-1):
             self.weights[i] += activation[i].reshape(-1, 1) * delta[LAYERS-2-i] * learning_rate
+        for i in range(0, LAYERS-2):    
             self.biases[i] += delta[LAYERS-2-i] * learning_rate
+        print(delta[0][0])
 
 
 
@@ -219,11 +224,9 @@ class NeuralBall(Ball):
         closest_ball_speed_x = (self.vx-closest_ball.vx)/cst.ARENA_RADIUS
         closest_ball_speed_y = (self.vy-closest_ball.vy)/cst.ARENA_RADIUS
 
-        inputs = rect(np.array([
-            center_x, -center_x, center_y, -center_y, self.vx, -self.vx, self.vy, -self.vy,
-            closest_ball_x,-closest_ball_x, closest_ball_y, -closest_ball_y, 
-            closest_ball_speed_x, -closest_ball_speed_x, closest_ball_speed_y, -closest_ball_speed_y
-        ]))
+        inputs = np.array([
+            center_x, center_y, self.vx, self.vy, closest_ball_x,closest_ball_y, closest_ball_speed_x, closest_ball_speed_y
+        ])
         return inputs
 
     def accel(self, balls):
@@ -232,10 +235,11 @@ class NeuralBall(Ball):
 
         # Get acceleration from the neural network
         self.predict = self.nn.predict(inputs)
+        accel = np.round(self.predict)
 
         # Update velocity based on acceleration
-        self.vx += (self.predict[0]-self.predict[1])* cst.ACCEL
-        self.vy += (self.predict[2]-self.predict[3])*cst.ACCEL
+        self.vx += accel[0]* cst.ACCEL
+        self.vy += accel[1]* cst.ACCEL
 
         if (self.vx >= cst.MAX_SPEED):
             self.vx = cst.MAX_SPEED
@@ -259,16 +263,7 @@ class NeuralBall(Ball):
     def instant_breed(self,balls):
         child = NeuralBall(color = self.color, name = None, parent_nn = self.nn)
         balls.append(child)
-
-    #doing_well assumes -1,0,1
-    def learn(self,input_list,target_list):
-
-
-        #if (doing_well == 1): #doing well
-        for i in range(0,len(input_list)):
-            inputs = input_list[i]
-            targets = target_list[i]
-            self.nn.train(inputs, targets)
+        
 
 
 

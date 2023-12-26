@@ -168,13 +168,13 @@ while True:
             #if (len(input_list) >= cst.FRAMES_REMEMBERED):
                 #input_list.pop()
                 #target_list.pop()
-            targets = np.array([0,0,0,0])
+            targets = np.array([0,0])
             if (pygame.key.get_pressed()[pygame.K_UP]):
-                targets[3] = 1  
+                targets[1] = -1  
             if (pygame.key.get_pressed()[pygame.K_DOWN]):
-                targets[2] = 1
+                targets[1] = 1
             if (pygame.key.get_pressed()[pygame.K_LEFT]):
-                targets[1] = 1  
+                targets[0] = -1  
             if (pygame.key.get_pressed()[pygame.K_RIGHT]):
                 targets[0] = 1
             inputs = main.prepare_inputs(balls)
