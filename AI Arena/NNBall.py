@@ -267,7 +267,10 @@ class NeuralBall(Ball):
 
 
     def save(self):
-        self.nn.save(str(self.id) + ".npy")
+        if (self.name == None):
+            self.nn.save(str(self.id) + ".npy")
+        else:
+            self.nn.save(self.name + ".npy")
 
 
 # Example usage

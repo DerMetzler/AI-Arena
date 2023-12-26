@@ -20,8 +20,7 @@ ACCEL = 0.05
 CENTER_X = SCREEN_WIDTH/2
 CENTER_Y = SCREEN_HEIGHT/2
 
-FLIP_SIDES = (random.randint(0
-                             ,1)-0.5)*2
+FLIP_SIDES = (random.randint(0 ,1)-0.5)*2
 
 # Colors
 WHITE = [255, 255, 255]
@@ -70,10 +69,10 @@ SHRINKING_R = 0.01
 TRUE_DEATH = True
 
 if(MODE == 0):
-    print("\n\nFFA with real-time selection. Controls: \n* Left click on a ball to delete it \n* Right click on a ball to let it replicate \n*Press 's' to save all currently living balls.")
+    print("\n\nFFA with real-time selection. Controls: \n* Left click on a ball to delete it \n* Right click on a ball to let it replicate \n* Press 's' to save all currently living balls.")
 
 if (MODE == 1):
-    print("\n\n1v1 copilot training. Controls: \n* Copilot mode is active while the space bar is pressed \nIn copilot mode, you do not control the ball, but the bot learns from you. \n* In copilot mode, use the arrow keys to indicate recommended movement. \n* Press 's' to save all currently living balls.")
+    print("\n\n1v1 copilot training. Controls: \n* Copilot mode is active while the space bar is pressed \nIn copilot mode, you do not control the ball, but the bot learns from you. \n* In copilot mode, use the arrow keys to indicate recommended movement. \n* Press 'f' to flip sides - changing which bot you train. \n* Press 's' to save all currently living balls.")
     START_BALLS = 2
     ARENA_START_RADIUS = 200
     SHRINKING_R = 0.1
@@ -111,7 +110,7 @@ if (MODE == 2):
 
 
 if (MODE == 3):
-    print("\n\n4v4 teamfight. Controls: \n* None.")
+    print("\n\n4v4 teamfight. Controls: \n* Press 'space' to start.")
     TEAMS = 2
     TEAMSCORE = [0,0]
     START_BALLS = 8
