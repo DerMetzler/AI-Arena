@@ -96,7 +96,7 @@ class NeuralNetwork:
         hidden_activation = rect(hidden)
 
         output = np.dot(hidden_activation, self.weights_hidden_output) #+ self.biases_output
-        output = np.clip(output,-0.9,0.9)
+        output = np.clip(output,-1,1)
         # Calculate the error
         output_error = targets - output
 
@@ -220,7 +220,7 @@ class NeuralBall(Ball):
         inputs = self.prepare_inputs(balls)
 
         # Get acceleration from the neural network
-        self.predict = np.clip(self.nn.predict(inputs),-0.9,0.9)
+        self.predict = np.clip(self.nn.predict(inputs),-1,1)
         acceleration = np.round(self.predict)
 
         # Update velocity based on acceleration
@@ -251,18 +251,15 @@ class NeuralBall(Ball):
         balls.append(child)
 
     #doing_well assumes -1,0,1
-    def learn(self,input_list,target_list, unlearn = False):
+    #def learn(self,input_list,target_list):
 
 
         #if (doing_well == 1): #doing well
-        for i in range(0,len(input_list)):
-            inputs = input_list[i]
-            targets = target_list[i]
-            if unlearn:
-                targets *= -1
-                r = (random.randint(0,1)-0.5)*2
-                np.where(targets == 0, r,targets)
-            self.nn.train(inputs, targets)
+        #for i in range(0,len(input_list)):
+         #   inputs = input_list[i]
+          #  targets = target_list[i]
+            
+           # self.nn.train(inputs, targets)
 
 
 
