@@ -1,3 +1,4 @@
+
 import pygame
 import sys
 import math
@@ -24,6 +25,31 @@ def spawn_balls():
                 team = 1
         balls.append(NNBall.NeuralBall(color = color, name = name, team =team))
     return balls
+
+def render(balls):
+    screen.fill(cst.BLACK)
+    pygame.draw.circle(screen, cst.ARENA_COLOR, (cst.CENTER_X, cst.CENTER_Y), cst.ARENA_RADIUS)
+    for ball in balls:
+        ball.draw(screen)
+    # Update the display
+    if (cst.MODE == 3 or cst.MODE == 1):
+        font = pygame.font.SysFont(None, 24)
+        for (i,ball) in enumerate(balls):
+            name = ball.name
+            if name == None:
+                name = 'Unnamed Bot'
+            nameimg = font.render(name, True, cst.WHITE)
+            numBallsPerTeam = cst.START_BALLS/2
+            if i < numBallsPerTeam:
+                pos = (2*cst.BALL_RADIUS, (i+1)*2.5*cst.BALL_RADIUS)
+                posname = (4*cst.BALL_RADIUS, (i+1)*2.5*cst.BALL_RADIUS)
+            else:
+                pos = (cst.SCREEN_WIDTH - 2*cst.BALL_RADIUS, (i+1-numBallsPerTeam)*2.5*cst.BALL_RADIUS)
+                posname = (cst.SCREEN_WIDTH - 7*cst.BALL_RADIUS,(i+1-numBallsPerTeam)*2.5*cst.BALL_RADIUS)
+            screen.blit(nameimg, posname)
+            pygame.draw.circle(screen, ball.color, pos, cst.BALL_RADIUS)
+    pygame.display.flip()
+
 
 # Initialize Pygame
 pygame.init()
@@ -140,8 +166,6 @@ while True:
                 targets[1] = 1
             if (pygame.key.get_pressed()[pygame.K_LEFT]):
                 targets[0] = -1  
-            if (pygame.key.get_pressed()[pygame.K_RIGHT]):
-                targets[0] = 1
             inputs = main.prepare_inputs(balls)
             main.nn.train(inputs,targets)
 

@@ -1,4 +1,4 @@
-from tkinter import HIDDEN
+
 import constants as cst
 import random
 import pygame
