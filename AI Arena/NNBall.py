@@ -7,10 +7,11 @@ import os
 import numpy as np
 
 
-#LAYER_SIZE = [16,24,16,4]
-INPUT_SIZE = 8  # 4 inputs for each of the vector components (x, y) for center and closest ball, and 4 inputs for speed and relative speed
-HIDDEN_SIZE = 16 #first layer values in [-1,1], then in [0,1], last layer again in [-1,1]
-OUTPUT_SIZE = 2  # Output size for acceleration in the x and y directions
+LAYER_SIZE = (16,24,4)
+LAYERS = len(LAYER_SIZE)
+#INPUT_SIZE = 8  # 4 inputs for each of the vector components (x, y) for center and closest ball, and 4 inputs for speed and relative speed
+#HIDDEN_SIZE = 16 #first layer values in [-1,1], then in [0,1], last layer again in [-1,1]
+#OUTPUT_SIZE = 2  # Output size for acceleration in the x and y directions
 
 
 
@@ -51,67 +52,76 @@ def wiggle_color(color):
 class NeuralNetwork:
     def __init__(self, parent = None):
         # Initialize weights randomly
+        self.weights = []
+        self.biases = []
         if (parent == None):
-            self.weights_input_hidden = (np.random.rand(INPUT_SIZE, HIDDEN_SIZE)-0.5)*2
-            self.weights_hidden_output =(np.random.rand(HIDDEN_SIZE, OUTPUT_SIZE)-0.5)*2
-            self.biases_hidden = np.random.rand(HIDDEN_SIZE)
-            #self.biases_output = np.random.rand(OUTPUT_SIZE)
+            for i in range(0,LAYERS-1):
+                sizein = LAYER_SIZE[i]
+                sizeout = LAYER_SIZE[i+1]
+                self.weights.append(np.random.rand(sizein, sizeout))
+                self.biases.append(np.random.rand(sizeout))
         else:
-            self.weights_input_hidden = wiggle_weights(parent.weights_input_hidden,-1,1)
-            self.weights_hidden_output = wiggle_weights(parent.weights_hidden_output,-1,1)
-            self.biases_hidden = wiggle_weights(parent.biases_hidden,0,1)
-            #self.biases_output = wiggle_weights(parent.biases_output,0,1)
+            for weights in parent.weights:
+                self.weights.append(wiggle_weights(weights,0,1))
+            for biases in parent.biases:  
+                self.biases.append(wiggle_weights(biases,0,1))
 
     def predict(self, inputs):
         # Forward pass through the network with biases
-        hidden = np.dot(inputs, self.weights_input_hidden) + self.biases_hidden
-        hidden_activation = rect(hidden)
-
-        output = np.dot(hidden_activation, self.weights_hidden_output) #+ self.biases_output
-        return output
+        activation = inputs
+        for i in range(0,LAYERS-1):
+            activation = np.dot(activation, self.weights[i]) + self.biases[i]
+            activation = rect(activation)
+            norm = np.linalg.norm(activation)
+            if (norm == 0):
+                return activation
+            else:
+                return activation / norm
 
     def save(self,filename):
         filename = os.path.join("save",filename)
         print(filename)
         with open(filename, 'wb') as f:
-            np.save(f, self.weights_input_hidden)
-            np.save(f, self.weights_hidden_output)
-            np.save(f, self.biases_hidden)
-            #np.save(f, self.biases_output)
+            for weights in self.weights:
+                np.save(f, weights)
+            for biases in self.biases:
+                np.save(f, biases)
 
     def load(self,filename):
         filename = os.path.join("load",filename)
         print(filename)
         with open(filename, 'rb') as f:
-            self.weights_input_hidden = np.load(f)
-            self.weights_hidden_output = np.load(f)
-            self.biases_hidden = np.load(f)
-            #self.biases_output = np.load(f)
+            for i in range(0, LAYERS -1):
+                self.weights[i] = np.load(f)
+            for i in range(0, LAYERS-1):
+                self.biases[i] = np.load(f)
+
 
 
     def train(self, inputs, targets, learning_rate=0.01):
         # Forward pass
         
-        hidden = np.dot(inputs, self.weights_input_hidden) + self.biases_hidden
-        hidden_activation = rect(hidden)
+        activation = []
+        activation.append(inputs)
+        for i in range(0,LAYERS-1):
+            activation.append(rect(np.dot(activation[i], self.weights[i]) + self.biases[i]))
+        output = activation[LAYERS-1]
 
-        output = np.dot(hidden_activation, self.weights_hidden_output) #+ self.biases_output
-        output = np.clip(output,-0.9,0.9)
-        # Calculate the error
-        output_error = targets - output
+        error = []
+        delta = []
+        error.append(targets*np.linalg.norm(output) - output)
 
         # Backpropagation
-        output_delta = output_error #* rect_derivative(output)
-        hidden_error = output_delta.dot(self.weights_hidden_output.T)
-        hidden_delta = hidden_error * rect_derivative(hidden_activation)
+        delta.append(error[0] * rect_derivative(output))
+
+        for i in range(0,LAYERS-1):
+            error.append(delta[i].dot(self.weights[LAYERS-1-i].T))
+            delta.append(error[i] * rect_derivative(activation[LAYERS-1-i]))
 
         # Update weights and biases
-        self.weights_hidden_output += hidden_activation.reshape(-1, 1) * output_delta * learning_rate
-        #self.biases_output += output_delta * learning_rate
-
-        self.weights_input_hidden += inputs.reshape(-1, 1) * hidden_delta * learning_rate
-        self.biases_hidden += hidden_delta * learning_rate
-
+        for i in range(0, LAYERS-1):
+            self.weights[i] += activation[i].reshape(-1, 1) * delta[LAYERS-1-i] * learning_rate
+            self.biases[i] += delta[LAYERS-1-i] * learning_rate
 
 
 
@@ -209,10 +219,11 @@ class NeuralBall(Ball):
         closest_ball_speed_x = (self.vx-closest_ball.vx)/cst.ARENA_RADIUS
         closest_ball_speed_y = (self.vy-closest_ball.vy)/cst.ARENA_RADIUS
 
-        inputs = np.array([
-            center_x, center_y, self.vx, self.vy,
-            closest_ball_x, closest_ball_y, closest_ball_speed_x, closest_ball_speed_y
-        ])
+        inputs = rect(np.array([
+            center_x, -center_x, center_y, -center_y, self.vx, -self.vx, self.vy, -self.vy,
+            closest_ball_x,-closest_ball_x, closest_ball_y, -closest_ball_y, 
+            closest_ball_speed_x, -closest_ball_speed_x, closest_ball_speed_y, -closest_ball_speed_y
+        ]))
         return inputs
 
     def accel(self, balls):
@@ -220,12 +231,11 @@ class NeuralBall(Ball):
         inputs = self.prepare_inputs(balls)
 
         # Get acceleration from the neural network
-        self.predict = np.clip(self.nn.predict(inputs),-0.9,0.9)
-        acceleration = np.round(self.predict)
+        self.predict = self.nn.predict(inputs)
 
         # Update velocity based on acceleration
-        self.vx += acceleration[0]*cst.ACCEL
-        self.vy += acceleration[1]*cst.ACCEL
+        self.vx += (self.predict[0]-self.predict[1])* cst.ACCEL
+        self.vy += (self.predict[2]-self.predict[3])*cst.ACCEL
 
         if (self.vx >= cst.MAX_SPEED):
             self.vx = cst.MAX_SPEED
@@ -251,23 +261,22 @@ class NeuralBall(Ball):
         balls.append(child)
 
     #doing_well assumes -1,0,1
-    def learn(self,input_list,target_list, unlearn = False):
+    def learn(self,input_list,target_list):
 
 
         #if (doing_well == 1): #doing well
         for i in range(0,len(input_list)):
             inputs = input_list[i]
             targets = target_list[i]
-            if unlearn:
-                targets *= -1
-                r = (random.randint(0,1)-0.5)*2
-                np.where(targets == 0, r,targets)
             self.nn.train(inputs, targets)
 
 
 
     def save(self):
-        self.nn.save(str(self.id) + ".npy")
+        if (self.name == None):
+            self.nn.save(str(self.id) + ".npy")
+        else:
+            self.nn.save(self.name + ".npy")
 
 
 # Example usage
