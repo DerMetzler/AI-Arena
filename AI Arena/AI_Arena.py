@@ -170,9 +170,9 @@ while True:
                 #target_list.pop()
             targets = np.array([0,0])
             if (pygame.key.get_pressed()[pygame.K_UP]):
-                targets[1] = 1  
+                targets[1] = -1  
             if (pygame.key.get_pressed()[pygame.K_DOWN]):
-                targets[1] = -1
+                targets[1] = 1
             if (pygame.key.get_pressed()[pygame.K_LEFT]):
                 targets[0] = -1  
             if (pygame.key.get_pressed()[pygame.K_RIGHT]):
