@@ -1,4 +1,4 @@
-from tkinter import HIDDEN
+
 import constants as cst
 import random
 import pygame
@@ -115,13 +115,13 @@ class NeuralNetwork:
         delta.append(error[0] * rect_derivative(output))
 
         for i in range(0,LAYERS-1):
-            error.append(delta[i].dot(self.weights[LAYERS-1-i].T))
-            delta.append(error[i] * rect_derivative(activation[LAYERS-1-i]))
+            error.append(delta[i].dot(self.weights[LAYERS-2-i].T))
+            delta.append(error[i+1] * rect_derivative(activation[LAYERS-2-i]))
 
         # Update weights and biases
         for i in range(0, LAYERS-1):
-            self.weights[i] += activation[i].reshape(-1, 1) * delta[LAYERS-1-i] * learning_rate
-            self.biases[i] += delta[LAYERS-1-i] * learning_rate
+            self.weights[i] += activation[i].reshape(-1, 1) * delta[LAYERS-2-i] * learning_rate
+            self.biases[i] += delta[LAYERS-2-i] * learning_rate
 
 
 

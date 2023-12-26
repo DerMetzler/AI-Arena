@@ -1333,14 +1333,6 @@
    'C:\\Program Files (x86)\\Microsoft Visual '
    'Studio\\Shared\\Python39_64\\lib\\threading.py',
    'PYMODULE'),
-  ('tkinter',
-   'C:\\Program Files (x86)\\Microsoft Visual '
-   'Studio\\Shared\\Python39_64\\lib\\tkinter\\__init__.py',
-   'PYMODULE'),
-  ('tkinter.constants',
-   'C:\\Program Files (x86)\\Microsoft Visual '
-   'Studio\\Shared\\Python39_64\\lib\\tkinter\\constants.py',
-   'PYMODULE'),
   ('token',
    'C:\\Program Files (x86)\\Microsoft Visual '
    'Studio\\Shared\\Python39_64\\lib\\token.py',
