@@ -8,7 +8,6 @@ import numpy as np
 
 
 LAYER_SIZE = (8,16,2)
-LAYERS = len(LAYER_SIZE)
 #INPUT_SIZE = 8  # 4 inputs for each of the vector components (x, y) for center and closest ball, and 4 inputs for speed and relative speed
 #HIDDEN_SIZE = 16 #first layer values in [-1,1], then in [0,1], last layer again in [-1,1]
 #OUTPUT_SIZE = 2  # Output size for acceleration in the x and y directions
@@ -32,7 +31,7 @@ def rect_derivative(x):
     return np.heaviside(x,0)
 
 def wiggle_weights(weights,lower,upper):
-    wiggled = weights+ (np.random.random_sample(weights.shape)-0.5)*((upper-lower)*0.1)
+    wiggled = weights+ (np.random.random_sample(weights.shape)-0.5)*((upper-lower)*0.01)
     return np.clip(wiggled,lower,upper)
    
 
@@ -50,33 +49,42 @@ def wiggle_color(color):
 
 # Neural network class
 class NeuralNetwork:
-    def __init__(self, parent = None):
+    def __init__(self, parent = None, layer_size =LAYER_SIZE):
         # Initialize weights randomly
         self.weights = []
         self.biases = []
         if (parent == None):
-            for i in range(0,LAYERS-1):
-                sizein = LAYER_SIZE[i]
-                sizeout = LAYER_SIZE[i+1]
+            self.layer_size = layer_size
+            self.layers = len(self.layer_size)
+            for i in range(0,self.layers-1):
+                sizein = self.layer_size[i]
+                sizeout = self.layer_size[i+1]
                 self.weights.append(np.random.rand(sizein, sizeout))
-                self.biases.append(np.random.rand(sizeout))
+                if (i == 0 or i==self.layers-2):
+                    self.weights[i] = (self.weights[i] - 0.5)*2
+                self.biases.append(np.random.rand(sizeout))  
             self.biases.pop()
         else:
+            self.layer_size = parent.layer_size
+            self.layers = len(self.layer_size)
             for (i,weights) in enumerate(parent.weights):
-                if (i == 0 or i == LAYERS-2):
+                if (i == 0 or i == self.layers-2):
                     self.weights.append(wiggle_weights(weights,-1,1))
                 else:
                     self.weights.append(wiggle_weights(weights,0,1))
             for biases in parent.biases:
                 self.biases.append(wiggle_weights(biases,0,1))
 
+        
+        
+
     def predict(self, inputs):
         # Forward pass through the network with biases
         activation = inputs
-        for i in range(0,LAYERS-2):
+        for i in range(0,self.layers-2):
             activation = np.dot(activation, self.weights[i]) + self.biases[i]
             activation = rect(activation)
-        output = np.dot(activation, self.weights[LAYERS-2]) #+ self.biases[LAYERS-2]
+        output = np.dot(activation, self.weights[self.layers-2]) #+ self.biases[LAYERS-2]
         return np.clip(output,-1,1)
 
     def save(self,filename):
@@ -91,11 +99,20 @@ class NeuralNetwork:
     def load(self,filename):
         filename = os.path.join("load",filename)
         print(filename)
-        with open(filename, 'rb') as f:
-            for i in range(0, LAYERS -1):
-                self.weights[i] = np.load(f)
-            for i in range(0, LAYERS-2):
-                self.biases[i] = np.load(f)
+        try:
+            with open(filename, 'rb') as f:
+                for i in range(0, self.layers -1):
+                    self.weights[i] = np.load(f)
+                for i in range(0, self.layers-2):
+                    self.biases[i] = np.load(f)
+        except:
+            self.layer_size = (8,16,2)
+            self.layers = 3
+            with open(filename, 'rb') as f:
+                for i in range(0, self.layers -1):
+                    self.weights[i] = np.load(f)
+                for i in range(0, self.layers-2):
+                    self.biases[i] = np.load(f)
 
 
 
@@ -104,9 +121,9 @@ class NeuralNetwork:
         
         activation = []
         activation.append(inputs)
-        for i in range(0,LAYERS-2):
+        for i in range(0,self.layers-2):
             activation.append(rect(np.dot(activation[i], self.weights[i]) + self.biases[i]))
-        output =  np.clip(np.dot(activation[LAYERS-2], self.weights[LAYERS-2]),-1,1) #+ self.biases[LAYERS-2]
+        output =  np.clip(np.dot(activation[self.layers-2], self.weights[self.layers-2]),-1,1) #+ self.biases[LAYERS-2]
 
 
         error = []
@@ -117,16 +134,16 @@ class NeuralNetwork:
         # Backpropagation
         delta.append(error[0])
 
-        for i in range(0,LAYERS-1):
-            error.append(delta[i].dot(self.weights[LAYERS-2-i].T))
-            delta.append(error[i+1] * rect_derivative(activation[LAYERS-2-i]))
+        for i in range(0,self.layers-1):
+            error.append(delta[i].dot(self.weights[self.layers-2-i].T))
+            delta.append(error[i+1] * rect_derivative(activation[self.layers-2-i]))
 
         # Update weights and biases
-        for i in range(0, LAYERS-1):
-            self.weights[i] += activation[i].reshape(-1, 1) * delta[LAYERS-2-i] * learning_rate
-        for i in range(0, LAYERS-2):    
-            self.biases[i] += delta[LAYERS-2-i] * learning_rate
-        print(delta[0][0])
+        for i in range(0, self.layers-1):
+            self.weights[i] += activation[i].reshape(-1, 1) * delta[self.layers-2-i] * learning_rate
+        for i in range(0, self.layers-2):    
+            self.biases[i] += delta[self.layers-2-i] * learning_rate
+        print(self.weights[0][0,0])
 
 
 
@@ -145,6 +162,7 @@ class Ball:
         self.respawn_time = 0
         self.spawn()
         self.last_rammed_with = None
+        self.last_rammed_countdown = 0
         self.team = None
 
 
@@ -154,6 +172,7 @@ class Ball:
         self.vy = 0
         self.alive = True
         self.last_rammed_with = None
+        self.last_rammed_countdown = 0
 
     def accel(self, balls):
         return
@@ -169,6 +188,11 @@ class Ball:
 
         self.x += self.vx
         self.y += self.vy
+
+        if (self.last_rammed_countdown >0):
+            self.last_rammed_countdown -= cst.FRAME_TIME
+        if (self.last_rammed_countdown <= 0):
+            self.last_rammed_with = None
 
         # Check and handle collisions with walls
         #if self.x - cst.BALL_RADIUS < 0 or self.x + cst.BALL_RADIUS > cst.SCREEN_WIDTH:

@@ -151,7 +151,9 @@ while True:
 
                         if((balls[i].vx - balls[j].vx)**2 + (balls[i].vy - balls[j].vy)**2 > cst.COLLIDE_SPEED**2):
                             balls[i].last_rammed_with=balls[j]
+                            balls[i].last_rammed_countdown = cst.KILL_TIME
                             balls[j].last_rammed_with=balls[i]
+                            balls[j].last_rammed_countdown = cst.KILL_TIME
 
                             if (cst.MODE == 2):
                                 balls[i].score += cst.SCORE_RAM

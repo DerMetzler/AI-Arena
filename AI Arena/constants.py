@@ -47,9 +47,6 @@ ARENA_COLOR=[100,100,100]
 
 
 FRAME_TIME = 10
-RESPAWN_TIME = 500
-BREED_TIME = 500
-
 RESTART_TIME = 1000
 
 #MS_REMEMBERED =1000
@@ -91,6 +88,8 @@ if (MODE == 2):
     with open("scores.txt", 'r') as f:
         #json.dump(SCORE_DICT, f) 
         SCORE_DICT = json.load(f)
+    
+    
     START_BALLS = 21
     SCORE_KILL = SCORE_DICT['kill']
     SCORE_FRAME_ALIVE = SCORE_DICT['frame_alive']
@@ -117,6 +116,11 @@ if (MODE == 3):
     ARENA_START_RADIUS = 300
     SHRINKING_R = 0.1
     TRUE_DEATH = False
+
+
+KILL_TIME = 3 * FRAME_TIME
+RESPAWN_TIME = 50 *FRAME_TIME
+BREED_TIME = 50 * FRAME_TIME
     
 
 with open("bots.txt") as f: 
@@ -159,8 +163,15 @@ def max_balls():
         return 2
 
 def generate_spawn_coords(pos = None):
-    if (MODE == 0 or MODE == 2):
+    if (MODE == 0):
         r = random.random()*ARENA_RADIUS /4 
+        raw_x = random.random()-0.5
+        raw_y = random.random()-0.5
+        factor = r/math.sqrt(raw_x**2 + raw_y**2)
+
+        return (raw_x * factor + CENTER_X, raw_y * factor +CENTER_Y)
+    elif (MODE == 2):
+        r = random.random()*ARENA_RADIUS/1.2 
         raw_x = random.random()-0.5
         raw_y = random.random()-0.5
         factor = r/math.sqrt(raw_x**2 + raw_y**2)
