@@ -2,6 +2,7 @@ import random
 import math
 import json
 import os
+from types import LambdaType
 # Function to generate random colors
 def generate_random_color():
     return [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]
@@ -19,6 +20,9 @@ COLLIDE_SPEED =2.5
 ACCEL = 0.05
 CENTER_X = SCREEN_WIDTH/2
 CENTER_Y = SCREEN_HEIGHT/2
+
+KILL_FRAME_TIME = 30 
+BREED_FRAME_TIME = 50 
 
 FLIP_SIDES = (random.randint(0,1)-0.5)*2
 
@@ -49,12 +53,31 @@ ARENA_COLOR=[100,100,100]
 FRAME_TIME = 10
 RESTART_TIME = 1000
 
+with open("nn_options.txt") as f: 
+    temp = json.load(f)
+LAYER_SIZE = tuple(temp['layer_size'])
+LEARNING_RATE = temp['learning_rate']
+
+print("\n\nNewly created bots will have the architecture: " + str(LAYER_SIZE))
+print("The general learning rate is set to: " + str(LEARNING_RATE))
+print("You can change these options in 'nn_options.txt'.")
+
 #MS_REMEMBERED =1000
 #FRAMES_REMEMBERED = MS_REMEMBERED / FRAME_TIME
 
-print("Modes: \n(1): FFA with real-time selection \n(2): 1v1 copilot training \n(3): FFA with score based selection \n(4): 4v4 teamfight")
-print("Mode selection: ")
-MODE = int(input())-1
+MODE = 'n'
+
+while MODE == 'n' or MODE == 'N':
+    print("\n\nModes: \n(1): FFA with real-time selection \n(2): 1v1 copilot training \n(3): FFA with score based selection \n(4): 4v4 teamfight \n(N): Infos on NN options.")
+    print("Mode selection: ")
+    MODE =input()
+    if (MODE == 'n' or MODE == 'N'):
+        print("The input layer has to have size 8, the output layer has to have size 2.")
+        print("Tried out architectures are [8, 16, 2] and [8, 16, 8, 2].")
+        print("The second option does mean that it takes longer to arrive at a decent bot, \nbut also that the skill ceiling for bots is noticeably raised.")
+        print("A learning rate of roughly 0.05 is recommended to first get a bot to semi-work at all. \nLater, a learning rate of 0.01 seems to work well for fine-tuning.")
+
+MODE = int(MODE)-1
 
 #FFA: 0, 1v1: 1, FFA_SCORE: 2, 4v4: 3
 
@@ -66,10 +89,10 @@ SHRINKING_R = 0.01
 TRUE_DEATH = True
 
 if(MODE == 0):
-    print("\n\nFFA with real-time selection. Controls: \n* Left click on a ball to delete it \n* Right click on a ball to let it replicate \n*Press 's' to save all currently living balls.")
+    print("\n\nFFA with real-time selection. Controls: \n* Left click on a ball to delete it \n* Right click on a ball to let it replicate \n* Press 'Q' to speed up the game. \n* Press 'S' to save all balls currently in game.")
 
 if (MODE == 1):
-    print("\n\n1v1 copilot training. Controls: \n* Copilot mode is active while the space bar is pressed \nIn copilot mode, you do not control the ball, but the bot learns from you. \n* In copilot mode, use the arrow keys to indicate recommended movement. \n* Press 's' to save all currently living balls.")
+    print("\n\n1v1 copilot training. Controls: \n* Copilot mode is active while the space bar is pressed \nIn copilot mode, you do not control the ball, but the bot learns from you. \n* In copilot mode, use the arrow keys to indicate recommended movement. \n* Press 'F' to flip sides, changing which bot you train. \n* Press 'Q' to speed up the game. \n* Press 'S' to save all balls currently in game.")
     START_BALLS = 2
     ARENA_START_RADIUS = 200
     SHRINKING_R = 0.1
@@ -83,7 +106,7 @@ if (MODE == 1):
 #    'score_collide':0,
 #    'score_win':0}
 if (MODE == 2):
-    print("\n\nFFA with score based selection. Controls: \n* Edit \"scores.txt\" _beforehand_ to adjust how score is gained. \n* Press 's' to save all currently living balls.")
+    print("\n\nFFA with score based selection. Controls: \n* Edit \"scores.txt\" _beforehand_ to adjust how score is gained. \n* Press 'Q' to slow down the game. \n* Press 'S' to save all balls currently in game. \n* Press 'T' to toggle the scoreboard (worsens performance).")
     
     with open("scores.txt", 'r') as f:
         #json.dump(SCORE_DICT, f) 
@@ -99,7 +122,6 @@ if (MODE == 2):
     SCORE_WIN = SCORE_DICT['score_win']
     TRUE_DEATH = False
     SHRINKING_R = 0.1
-    FRAME_TIME = 1
 
 
 
@@ -109,18 +131,13 @@ if (MODE == 2):
 
 
 if (MODE == 3):
-    print("\n\n4v4 teamfight. Controls: \n* None.")
+    print("\n\n4v4 teamfight. Controls: \n* Press SPACE to start the game. \n* Press 'Q' to speed up the game.")
     TEAMS = 2
     TEAMSCORE = [0,0]
     START_BALLS = 8
     ARENA_START_RADIUS = 300
     SHRINKING_R = 0.1
     TRUE_DEATH = False
-
-
-KILL_TIME = 3 * FRAME_TIME
-RESPAWN_TIME = 50 *FRAME_TIME
-BREED_TIME = 50 * FRAME_TIME
     
 
 with open("bots.txt") as f: 

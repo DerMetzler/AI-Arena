@@ -1,0 +1,1 @@
+{"kill": 50, "frame_alive": 3, "frame_center": 2, "score_ram": 10, "score_collide": -5, "score_win": 500}

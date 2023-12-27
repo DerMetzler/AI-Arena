@@ -7,8 +7,9 @@ import constants as cst
 import NNBall
 import random
 import numpy as np
+import time
 
-
+TOGGLE_SCORE = True
 
 def spawn_balls():
     balls = []
@@ -35,9 +36,10 @@ def render(balls):
     if (cst.MODE == 3 or cst.MODE == 1):
         font = pygame.font.SysFont(None, 24)
         for (i,ball) in enumerate(balls):
-            name = ball.name
-            if name == None:
-                name = 'Unnamed Bot'
+            if ball.name == None:
+                name = 'Unnamed Bot' + " " + str(ball.nn.layer_size)
+            else:
+                name = ball.name + " " + str(ball.nn.layer_size)
             nameimg = font.render(name, True, cst.WHITE)
             numBallsPerTeam = cst.START_BALLS/2
             if i < numBallsPerTeam:
@@ -45,7 +47,22 @@ def render(balls):
                 posname = (4*cst.BALL_RADIUS, (i+1)*2.5*cst.BALL_RADIUS)
             else:
                 pos = (cst.SCREEN_WIDTH - 2*cst.BALL_RADIUS, (i+1-numBallsPerTeam)*2.5*cst.BALL_RADIUS)
-                posname = (cst.SCREEN_WIDTH - 7*cst.BALL_RADIUS,(i+1-numBallsPerTeam)*2.5*cst.BALL_RADIUS)
+                posname = (cst.SCREEN_WIDTH - 12*cst.BALL_RADIUS,(i+1-numBallsPerTeam)*2.5*cst.BALL_RADIUS)
+            screen.blit(nameimg, posname)
+            pygame.draw.circle(screen, ball.color, pos, cst.BALL_RADIUS)
+    if (cst.MODE == 2 and TOGGLE_SCORE):
+        balls.sort(key = lambda b : -b.score)
+        font = pygame.font.SysFont(None, 24)
+        for (i,ball) in enumerate(balls):
+            name = str(ball.name) + " (" + str(ball.id) + ")" + ": " + str(ball.score)
+            nameimg = font.render(name, True, cst.WHITE)
+            cutoff = 11
+            if i < cutoff:
+                pos = (2*cst.BALL_RADIUS, (i+1)*2.5*cst.BALL_RADIUS)
+                posname = (4*cst.BALL_RADIUS, (i+1)*2.5*cst.BALL_RADIUS)
+            else:
+                pos = (cst.SCREEN_WIDTH - 2*cst.BALL_RADIUS, (i+1-cutoff)*2.5*cst.BALL_RADIUS)
+                posname = (cst.SCREEN_WIDTH - 12*cst.BALL_RADIUS,(i+1-cutoff)*2.5*cst.BALL_RADIUS)
             screen.blit(nameimg, posname)
             pygame.draw.circle(screen, ball.color, pos, cst.BALL_RADIUS)
     pygame.display.flip()
@@ -82,11 +99,18 @@ if (cst.MODE == 3):
         if pygame.key.get_pressed()[pygame.K_SPACE]:
             break
 
+start = None  
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        if event.type == pygame.KEYDOWN:
+            if(event.key == pygame.K_t):
+                TOGGLE_SCORE = not TOGGLE_SCORE
+            if (event.key == pygame.K_f and cst.MODE == 1):
+                balls.reverse()
     pressed = pygame.key.get_pressed()
     
     
@@ -151,9 +175,9 @@ while True:
 
                         if((balls[i].vx - balls[j].vx)**2 + (balls[i].vy - balls[j].vy)**2 > cst.COLLIDE_SPEED**2):
                             balls[i].last_rammed_with=balls[j]
-                            balls[i].last_rammed_countdown = cst.KILL_TIME
+                            balls[i].last_rammed_countdown = cst.KILL_FRAME_TIME
                             balls[j].last_rammed_with=balls[i]
-                            balls[j].last_rammed_countdown = cst.KILL_TIME
+                            balls[j].last_rammed_countdown = cst.KILL_FRAME_TIME
 
                             if (cst.MODE == 2):
                                 balls[i].score += cst.SCORE_RAM
@@ -191,10 +215,6 @@ while True:
             render(balls)
             pygame.time.delay(int(cst.RESTART_TIME/2))
 
-        if pygame.key.get_pressed()[pygame.K_f]:
-            balls.reverse()
-            pygame.time.delay(cst.RESTART_TIME)
-
     if (cst.MODE ==2):
         for ball in balls:
             if ball.alive:
@@ -212,17 +232,20 @@ while True:
             pygame.time.delay(cst.RESTART_TIME)
 
             balls.sort(key = lambda b : -b.score)
-            balls = balls[:5]
+            balls = balls[:6]
+            
             for ball in balls:
+                ball.save()
                 print(str(ball.name) + " ("+ str(ball.id) + "): "+str(ball.score))
 
             for i in range(0,6):
-                for j in range(0,6-i):
+                for j in range(0,5-i):
                     balls[i].instant_breed(balls)
 
             for ball in balls:
                 ball.spawn()
                 ball.score = 0
+
 
     if (cst.MODE == 3):
         team1alive = False
@@ -251,7 +274,7 @@ while True:
 
     render(balls)
     
-    if not (cst.MODE == 3):
+    if not (cst.MODE == 3 or cst.MODE == 2):
         if(numAlive == 1 or pygame.key.get_pressed()[pygame.K_s]):
             for ball in balls:
                 ball.save()
@@ -259,4 +282,20 @@ while True:
 
 
     # Add a small delay to control the speed of the simulation
-    pygame.time.delay(cst.FRAME_TIME)
+    quick = pygame.key.get_pressed()[pygame.K_q]
+    if (cst.MODE==2):
+        quick = not quick
+    if quick:
+        pygame.time.delay(1)
+    else:
+        end = time.time()
+        if (start != None):
+            elapsed = int(1000*(end - start))
+            remaining = cst.FRAME_TIME - elapsed
+            if (remaining < 1):
+                remaining = 1
+        else:
+            remaining = cst.FRAME_TIME
+        
+        pygame.time.delay(remaining)
+        start = time.time()        

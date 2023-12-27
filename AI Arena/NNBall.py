@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 
-LAYER_SIZE = (8,16,2)
+
 #INPUT_SIZE = 8  # 4 inputs for each of the vector components (x, y) for center and closest ball, and 4 inputs for speed and relative speed
 #HIDDEN_SIZE = 16 #first layer values in [-1,1], then in [0,1], last layer again in [-1,1]
 #OUTPUT_SIZE = 2  # Output size for acceleration in the x and y directions
@@ -31,14 +31,14 @@ def rect_derivative(x):
     return np.heaviside(x,0)
 
 def wiggle_weights(weights,lower,upper):
-    wiggled = weights+ (np.random.random_sample(weights.shape)-0.5)*((upper-lower)*0.01)
+    wiggled = weights+ (np.random.random_sample(weights.shape)-0.5)*(upper-lower)*cst.LEARNING_RATE
     return np.clip(wiggled,lower,upper)
    
 
 def wiggle_color(color):
     newcolor = color.copy()
     for i in range(0,len(newcolor)):
-        c = newcolor[i] + random.randint(-5, 5)
+        c = newcolor[i] + random.randint(-5, 5) * cst.LEARNING_RATE * 100
         if (c < 0):
             c = 0
         if (c > 255):
@@ -49,34 +49,41 @@ def wiggle_color(color):
 
 # Neural network class
 class NeuralNetwork:
-    def __init__(self, parent = None, layer_size =LAYER_SIZE):
+    def __init__(self, parent = None, layer_size =cst.LAYER_SIZE):
         # Initialize weights randomly
-        self.weights = []
-        self.biases = []
         if (parent == None):
             self.layer_size = layer_size
             self.layers = len(self.layer_size)
-            for i in range(0,self.layers-1):
-                sizein = self.layer_size[i]
-                sizeout = self.layer_size[i+1]
-                self.weights.append(np.random.rand(sizein, sizeout))
-                if (i == 0 or i==self.layers-2):
-                    self.weights[i] = (self.weights[i] - 0.5)*2
-                self.biases.append(np.random.rand(sizeout))  
-            self.biases.pop()
+            self.create_layers()
         else:
             self.layer_size = parent.layer_size
             self.layers = len(self.layer_size)
+            self.weights = []
+            self.biases = []
             for (i,weights) in enumerate(parent.weights):
                 if (i == 0 or i == self.layers-2):
                     self.weights.append(wiggle_weights(weights,-1,1))
                 else:
                     self.weights.append(wiggle_weights(weights,0,1))
-            for biases in parent.biases:
-                self.biases.append(wiggle_weights(biases,0,1))
+            for (i, biases) in enumerate(parent.biases):
+                if (i == self.layers-2):
+                    self.biases.append(wiggle_weights(biases,-1,1))
+                else:
+                    self.biases.append(wiggle_weights(biases,0,1))
 
         
-        
+    def create_layers(self):
+        self.weights = []
+        self.biases = []
+        for i in range(0,self.layers-1):
+            sizein = self.layer_size[i]
+            sizeout = self.layer_size[i+1]
+            self.weights.append(np.random.rand(sizein, sizeout))
+            if (i == 0 or i==self.layers-2):
+                self.weights[i] = (self.weights[i] - 0.5)*2
+            self.biases.append(np.random.rand(sizeout))  
+            if (i==self.layers-2):
+                self.biases[i] = (self.biases[i] - 0.5)*2
 
     def predict(self, inputs):
         # Forward pass through the network with biases
@@ -91,6 +98,7 @@ class NeuralNetwork:
         filename = os.path.join("save",filename)
         print(filename)
         with open(filename, 'wb') as f:
+            np.save(f, self.layer_size)
             for weights in self.weights:
                 np.save(f, weights)
             for biases in self.biases:
@@ -101,22 +109,27 @@ class NeuralNetwork:
         print(filename)
         try:
             with open(filename, 'rb') as f:
+                self.layer_size= tuple(np.load(f))
+                self.layers = len(self.layer_size)
+                self.create_layers()
                 for i in range(0, self.layers -1):
                     self.weights[i] = np.load(f)
-                for i in range(0, self.layers-2):
+                for i in range(0, self.layers-1):
                     self.biases[i] = np.load(f)
         except:
-            self.layer_size = (8,16,2)
-            self.layers = 3
+            self.layer_size=(8,16,2)
+            self.layers = len(self.layer_size)
+            self.create_layers()
             with open(filename, 'rb') as f:
                 for i in range(0, self.layers -1):
                     self.weights[i] = np.load(f)
                 for i in range(0, self.layers-2):
                     self.biases[i] = np.load(f)
+                self.biases[self.layers-2] = np.array([0,0])
 
 
 
-    def train(self, inputs, targets, learning_rate=0.01):
+    def train(self, inputs, targets, learning_rate=cst.LEARNING_RATE):
         # Forward pass
         
         activation = []
@@ -143,7 +156,6 @@ class NeuralNetwork:
             self.weights[i] += activation[i].reshape(-1, 1) * delta[self.layers-2-i] * learning_rate
         for i in range(0, self.layers-2):    
             self.biases[i] += delta[self.layers-2-i] * learning_rate
-        print(self.weights[0][0,0])
 
 
 
@@ -159,7 +171,6 @@ class Ball:
         else:
             self.color = wiggle_color(color)
         self.score = 0
-        self.respawn_time = 0
         self.spawn()
         self.last_rammed_with = None
         self.last_rammed_countdown = 0
@@ -190,7 +201,7 @@ class Ball:
         self.y += self.vy
 
         if (self.last_rammed_countdown >0):
-            self.last_rammed_countdown -= cst.FRAME_TIME
+            self.last_rammed_countdown -= 1
         if (self.last_rammed_countdown <= 0):
             self.last_rammed_with = None
 
@@ -202,7 +213,6 @@ class Ball:
 
     def die(self):
         self.alive = False
-        self.respawn_time = cst.RESPAWN_TIME
         if self.last_rammed_with != None:
             if self.last_rammed_with.last_rammed_with == self:
                 self.last_rammed_with.last_rammed_with = None
@@ -220,7 +230,7 @@ class NeuralBall(Ball):
     def __init__(self, color = None, name = None, parent_nn = None, team = None):
         Ball.__init__(self,color, name, team)
         self.nn = NeuralNetwork(parent_nn)
-        self.breed_time = cst.BREED_TIME
+        self.breed_time = cst.BREED_FRAME_TIME
         self.predict = None
         
         if(self.name != None):
@@ -278,9 +288,9 @@ class NeuralBall(Ball):
         if not self.alive:
             return
 
-        self.breed_time -= cst.FRAME_TIME
+        self.breed_time -= 1
         if (self.breed_time <= 0):
-            self.breed_time = cst.BREED_TIME
+            self.breed_time = cst.BREED_FRAME_TIME
             self.instant_breed(balls)
             
 

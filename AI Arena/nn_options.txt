@@ -1,0 +1,1 @@
+{"layer_size": [8,16,2], "learning_rate": 0.05}
